@@ -16,4 +16,10 @@ const firebaseConfig = {
 // 프로젝트 초기화
 const app = initializeApp(firebaseConfig);
 
-export const messaging = getMessaging(app);
+let messaging;
+
+if (typeof window !== "undefined") {
+  messaging = getMessaging(app);
+}
+
+export { messaging };

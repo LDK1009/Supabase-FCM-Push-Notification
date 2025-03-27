@@ -1,7 +1,7 @@
 "use client";
 
 import { initializeApp } from "firebase/app";
-import { getMessaging } from "firebase/messaging";
+import { getMessaging, Messaging } from "firebase/messaging";
 
 // 프로젝트 설정
 const firebaseConfig = {
@@ -16,10 +16,15 @@ const firebaseConfig = {
 // 프로젝트 초기화
 const app = initializeApp(firebaseConfig);
 
-let messaging;
+// 푸시 알림 관리 - 브라우저 환경에서만 초기화
+let messaging: Messaging | undefined;
 
 if (typeof window !== "undefined") {
-  messaging = getMessaging(app);
+  try {
+    messaging = getMessaging(app);
+  } catch (error) {
+    console.error("Firebase Messaging 초기화 오류:", error);
+  }
 }
 
 export { messaging };

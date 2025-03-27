@@ -1,5 +1,5 @@
 "use client";
-import { getToken, isSupported, onMessage, Messaging } from "firebase/messaging";
+import { getToken, isSupported, onMessage } from "firebase/messaging";
 import { messaging } from "../lib/firebaseConfig";
 
 // 푸시 알림 권한 요청

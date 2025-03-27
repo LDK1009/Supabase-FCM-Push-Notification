@@ -1,0 +1,70 @@
+/**
+ * [소개]
+ * Firebase Cloud Messaging Service Worker(FCM SW)
+ *
+ * [설명]
+ * Service Worker는 웹 페이지와 별도의 실행 컨텍스트(Service Worker 실행 컨텍스트)에서 동작합니다.
+ * 여기서는 'window' 대신 'self'를 사용합니다:
+ * - self: Service Worker 실행 컨텍스트의 전역 객체를 가리킴
+ * - window: 브라우저 창의 전역 객체를 가리키지만, Service Worker에서는 접근 불가
+ *
+ * Service Worker는 웹 페이지와 분리된 별도의 스레드에서 실행되므로,
+ * Service Worker 스펙에 따라 'self'를 사용하여 전역 스코프에 접근해야 합니다.
+ * 
+ */
+
+
+// Service Worker가 '설치'될 때 실행되는 이벤트 리스너
+// 브라우저가 Service Worker를 처음 감지했을 때 발생
+self.addEventListener("install", function (e) {
+    console.log("fcm sw install..");
+    self.skipWaiting(); // 기존 Service Worker가 있더라도 즉시 활성화하도록 함
+  });
+  
+  // Service Worker가 '활성화'될 때 실행되는 이벤트 리스너
+  // install 이벤트 후에 발생하며, 이 시점에서 Service Worker가 제어권을 가짐
+  self.addEventListener("activate", function (e) {
+    console.log("fcm sw activate..");
+  });
+  
+  // '푸시 알림이 도착'했을 때 실행되는 이벤트 리스너
+  // Firebase Cloud Messaging에서 보낸 메시지를 처리
+  self.addEventListener("push", function (e) {
+    // 푸시 메시지 데이터를 JSON 형식으로 로그 출력
+    console.log("push: ", e.data.json());
+  
+    // 데이터가 없으면 함수 종료
+    if (!e.data.json()) {
+      return;
+    }
+  
+    // 알림 정보 추출
+    const { title, body, image, tag } = e.data.json().notification;
+  
+    // 알림 옵션 설정 (제목, 본문, 아이콘, 태그 등)
+    const notificationOptions = {
+      body: body,
+      icon: image,
+      tag: tag,
+    };
+  
+    // 알림 정보 로그 출력
+    console.log("push: ", { title, notificationOptions });
+  
+    // 실제 알림 표시
+    self.registration.showNotification(title, notificationOptions);
+  });
+  
+  // 사용자가 '알림을 클릭'했을 때 실행되는 이벤트 리스너
+  self.addEventListener("notificationclick", function (event) {
+    console.log("notification click");
+    // 클릭 시 열릴 URL 설정
+    const url = "/";
+    // 알림 닫기
+    event.notification.close();
+    // 지정된 URL로 새 창 또는 탭 열기
+    // waitUntil은 비동기 작업이 완료될 때까지 Service Worker를 활성 상태로 유지
+    // 아래 코드에서는 지정된 URL로 탭 열 때까지 Service worker가 활성 상태로 유지
+    event.waitUntil(clients.openWindow(url));
+  });
+  

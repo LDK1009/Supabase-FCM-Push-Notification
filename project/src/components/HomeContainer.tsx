@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { getFcmToken, requestNotificationPermission } from "@/utils/pushNotification";
+import { supabase } from "@/lib/supabaseClientConfig";
 
 export default function HomeContainer() {
   ////////////////////////////// State //////////////////////////////
@@ -11,6 +12,14 @@ export default function HomeContainer() {
   const [notificationStatus, setNotificationStatus] = useState("확인 중...");
   // FCM 토큰
   const [fcmToken, setFcmToken] = useState<string | null>(null);
+  // 이메일
+  const [email, setEmail] = useState("");
+  // 비밀번호
+  const [password, setPassword] = useState("");
+  // uid
+  const [uid, setUid] = useState("");
+  // 푸시 알림 내용
+  const [notificationBody, setNotificationBody] = useState("");
 
   ////////////////////////////// Effect //////////////////////////////
   // 마운트 시 실행
@@ -56,10 +65,74 @@ export default function HomeContainer() {
     setFcmToken(data);
   }
 
-  // 푸시 알림 테스트 버튼 클릭 시 실행
-  function handlePushButton() {
+  // 알림 권한 요청 및 FCM 토큰 발급
+  function handleRequestPermissionAndGetFcmToken() {
     handleRequestPermission();
     handleGetFcmToken();
+  }
+
+  // 로그인
+  async function handleLogin() {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
+    if (error) {
+      alert("로그인 오류");
+      return;
+    } else {
+      alert("로그인 성공");
+      setUid(data.user?.id);
+    }
+  }
+
+  // 회원가입
+  async function handleSignUp() {
+    const { error } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+    });
+    if (error) {
+      alert("회원가입 오류");
+      return;
+    } else {
+      alert("회원가입 성공");
+    }
+  }
+
+  // FCM 토큰 저장
+  async function insertFcmToken(token: string) {
+    // 로그인 후 토큰 저장 가능
+    const { error: loginError } = await supabase.auth.getUser();
+    if (loginError) {
+      alert("로그인 후 토큰 저장 가능");
+      return;
+    }
+
+    // FCM 토큰 저장
+    const { error: insertError } = await supabase.from("profiles").insert({
+      id: uid,
+      fcm_token: token,
+    });
+    if (insertError) {
+      alert("FCM 토큰 저장 오류");
+    } else {
+      alert("FCM 토큰 저장 성공");
+    }
+  }
+
+  // 푸시 알림 테스트
+  async function handleSendNotification() {
+    const insertData = {
+      user_id: uid,
+      body: notificationBody,
+    };
+
+    const { error } = await supabase.from("notifications").insert(insertData);
+
+    if (error) {
+      alert("푸시 알림 테스트 오류");
+    }
   }
 
   return (
@@ -67,10 +140,9 @@ export default function HomeContainer() {
       {/* 헤더 */}
       <header>
         <h1>Firebase Cloud Messaging 테스트</h1>
-        <p>웹 푸시 알림 기능을 테스트하는 페이지입니다.</p>
+        <div>웹 푸시 알림 기능을 테스트하는 페이지입니다.</div>
       </header>
 
-      <br />
       <br />
 
       {/* 브라우저 지원 상태 */}
@@ -85,13 +157,36 @@ export default function HomeContainer() {
       </section>
 
       <br />
+
+      {/* 로그인 */}
+      <section>
+        <h2>1. 로그인</h2>
+        <p>유저 아이디(uid): {uid}</p>
+
+        <div>
+          <label>이메일 : </label>
+          <input type="text" placeholder="m3088787@gmail.com" onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div>
+          <label>비밀번호 : </label>
+          <input type="text" placeholder="qwer1234" onChange={(e) => setPassword(e.target.value)} />
+        </div>
+
+        <br />
+        <button onClick={handleSignUp}>회원가입</button>
+        <button onClick={handleLogin}>로그인</button>
+      </section>
+
       <br />
 
-      {/* 푸시 알림 테스트 */}
+      {/* FCM 토큰 발급 */}
       <section>
-        <h2>푸시 알림 테스트</h2>
-        <button onClick={handlePushButton} disabled={!isSupported || notificationStatus === "denied"}>
-          푸시 알림 권한 요청
+        <h2>2. FCM 토큰 발급</h2>
+        <button
+          onClick={handleRequestPermissionAndGetFcmToken}
+          disabled={!isSupported || notificationStatus === "denied"}
+        >
+          FCM 토큰 발급
         </button>
 
         {notificationStatus === "denied" && (
@@ -109,25 +204,32 @@ export default function HomeContainer() {
             </details>
           </div>
         )}
+
+        <br />
+        <br />
+
+        {/* FCM 토큰 */}
+        {fcmToken && <div>FCM 토큰 : {fcmToken}</div>}
       </section>
 
       <br />
-      <br />
 
-      {/* FCM 토큰 */}
-      {fcmToken && (
-        <section>
-          <h2>FCM 토큰</h2>
-          <p>
-            <strong>발급된 토큰:</strong>
-          </p>
-          <div>
-            <p style={{ wordBreak: "break-all" }}>{fcmToken}</p>
-          </div>
-        </section>
-      )}
+      {/* FCM 토큰 저장 */}
+      <section>
+        <h2>3. FCM 토큰 저장</h2>
+        <button onClick={() => insertFcmToken(fcmToken as string)}>FCM 토큰 저장</button>
+      </section>
 
       <br />
+
+      {/* 푸시 알림 테스트 */}
+      <section>
+        <h2>4. 푸시 알림 테스트</h2>
+        <input type="text" placeholder="푸시 알림 내용" onChange={(e) => setNotificationBody(e.target.value)} />
+        <br />
+        <button onClick={handleSendNotification}>푸시 알림 테스트</button>
+      </section>
+
       <br />
 
       {/* 푸터 */}

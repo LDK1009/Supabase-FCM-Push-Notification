@@ -1,3 +1,7 @@
+// 이 파일에서 ts및 eslint오류 무시
+/* eslint-disable */
+// @ts-nocheck
+
 // Supabase 클라이언트 라이브러리와 Google 인증 라이브러리 가져오기
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { JWT } from 'npm:google-auth-library@9'
